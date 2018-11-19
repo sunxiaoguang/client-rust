@@ -1,20 +1,13 @@
-extern crate futures;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate quick_error;
-extern crate grpcio as grpc;
+use std::ops::Deref;
+use std::path::PathBuf;
+use serde_derive::*;
 
 pub mod errors;
 pub mod raw;
 pub mod transaction;
 
-use std::ops::Deref;
-use std::path::PathBuf;
-
-pub use errors::Error;
-pub use errors::Result;
+pub use crate::errors::Error;
+pub use crate::errors::Result;
 
 #[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Key(Vec<u8>);
