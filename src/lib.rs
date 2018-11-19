@@ -1,6 +1,6 @@
+use serde_derive::*;
 use std::ops::Deref;
 use std::path::PathBuf;
-use serde_derive::*;
 
 pub mod errors;
 pub mod raw;

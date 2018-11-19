@@ -1,8 +1,6 @@
-use std::ops::RangeBounds;
-
-use futures::{Future, Poll};
-
 use crate::{Config, Error, Key, KvPair, Value};
+use futures::{Future, Poll};
+use std::ops::RangeBounds;
 
 #[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct ColumnFamily(String);
@@ -375,7 +373,7 @@ impl Future for Connect {
 pub struct Client;
 
 impl Client {
-    #![cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
+    #![cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
     pub fn new(config: &Config) -> Connect {
         Connect::new(config.clone())
     }
