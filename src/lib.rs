@@ -1,6 +1,8 @@
 use serde_derive::*;
-use std::ops::Deref;
-use std::path::PathBuf;
+use std::{
+    ops::{Deref, RangeBounds},
+    path::PathBuf,
+};
 
 pub mod errors;
 pub mod raw;
@@ -16,18 +18,73 @@ pub use crate::errors::Result;
 /// 
 /// This type implements `Deref<Target=Vec<u8>>` so it can be used like one transparently.
 /// 
-/// This type contains an owned value, so it should be treated it like `String` or `Vec<u8>` over a `&str` or `&[u8]`.
+/// This type contains an owned value, so it should be treated it like `String` or `Vec<u8>` instead of `&str` or `&[u8]`.
 /// 
 /// ```rust
 /// # use tikv_client::Key;
 /// let from_bytes = Key::from(b"TiKV".to_vec());
 /// let from_string = Key::from(String::from("TiKV"));
+/// let from_str = Key::from("TiKV");
 /// 
 /// assert_eq!(from_bytes, from_string);
+/// assert_eq!(from_bytes, from_str);
 /// assert_eq!(*from_bytes, b"TiKV".to_vec());
 /// ```
 #[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Key(Vec<u8>);
+
+impl<'a> From<&'a Key> for KeyRef<'a> {
+    fn from(v: &'a Key) -> Self {
+        KeyRef(&v.0)
+    }
+}
+
+/// A reference to a [`Key`](struct.Key.html).
+/// 
+/// This type implements `Deref<Target=&[u8]>>` so it can be used like one transparently.
+/// 
+/// This is a convienence type that is not intended to be directly used. This type contains a borrowed value, so it should be treated it like `&str` or `&[u8]` instead of `String` or `Vec<u8>`.
+/// 
+/// ```rust
+/// # use tikv_client::{Key, KeyRef};
+/// let from_bytes = KeyRef::from(&b"TiKV"[..]);
+/// let the_string = String::from("TiKV");
+/// let from_string = KeyRef::from(&the_string);
+/// let from_str = KeyRef::from("TiKV");
+/// let from_key = KeyRef::from(&Key::from("TiKV"));
+/// 
+/// assert_eq!(from_bytes, from_str);
+/// assert_eq!(from_bytes, from_string);
+/// assert_eq!(*from_bytes, b"TiKV"[..]);
+/// ```
+#[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct KeyRef<'a>(&'a [u8]);
+
+impl<'a> Deref for KeyRef<'a> {
+    type Target = [u8];
+    
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a> From<&'a [u8]> for KeyRef<'a> {
+    fn from(v: &'a [u8]) -> KeyRef<'a> {
+        KeyRef(v)
+    }
+}
+
+impl<'a> From<&'a str> for KeyRef<'a> {
+    fn from(v: &'a str) -> KeyRef<'a> {
+        KeyRef(v.as_ref())
+    }
+}
+
+impl<'a> From<&'a String> for KeyRef<'a> {
+    fn from(v: &'a String) -> KeyRef<'a> {
+        KeyRef(v.as_ref())
+    }
+}
 
 /// The value part of a key/value pair.
 /// 
@@ -57,8 +114,9 @@ pub struct Value(Vec<u8>);
 /// let key = b"key".to_vec();
 /// let value = b"value".to_vec();
 /// let constructed = KvPair::new(key.clone(), value.clone());
-/// let from_tuple = KvPair::from((key.into(), value.into()));
+/// let from_tuple = KvPair::from((key, value));
 /// assert_eq!(constructed, from_tuple);
+/// ```
 #[derive(Default, Clone, Eq, PartialEq, Debug)]
 pub struct KvPair(Key, Value);
 
@@ -74,9 +132,9 @@ impl From<String> for Key {
     }
 }
 
-impl AsRef<Key> for Key {
-    fn as_ref(&self) -> &Self {
-        self
+impl<'a> From<&'a str> for Key {
+    fn from(v: &'a str) -> Key {
+        Key(v.as_bytes().to_vec())
     }
 }
 
@@ -122,9 +180,10 @@ impl KvPair {
     }
 }
 
-impl From<(Key, Value)> for KvPair {
-    fn from((k, v): (Key, Value)) -> KvPair {
-        KvPair(k, v)
+impl<K, V> From<(K, V)> for KvPair 
+where K: Into<Key>, V: Into<Value> {
+    fn from((k, v): (K, V)) -> KvPair {
+        KvPair(k.into(), v.into())
     }
 }
 
